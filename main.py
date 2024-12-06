@@ -1,4 +1,4 @@
-from tablero import Tablero
+from tablero1 import Tablero
 
 def main():
     tablero = Tablero()
