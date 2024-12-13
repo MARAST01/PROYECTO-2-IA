@@ -1,44 +1,29 @@
-class Tablero:
-    def __init__(self):
-        # Inicializar los dos tableros como matrices 8x8
-        self.tablero1 = [
-            ["Tn", "Cn", "An", "Qn", "Kn", "An", "Cn", "Tn"],
-            ["Pn", "Pn", "Pn", "Pn", "Pn", "Pn", "Pn", "Pn"],
-            ["z", "z", "z", "z", "z", "z", "z", "z"],
-            ["z", "z", "z", "z", "z", "z", "z", "z"],
-            ["z", "z", "z", "z", "z", "z", "z", "z"],
-            ["z", "z", "z", "z", "z", "z", "z", "z"],
-            ["Pb", "Pb", "Pb", "Pb", "Pb", "Pb", "Pb", "Pb"],
-            ["Tb", "Cb", "Ab", "Qb", "Kb", "Ab", "Cb", "Tb"]
-        ]
+# Representación del tablero inicial de ajedrez estándar
+# Las filas están enumeradas de 1 a 8 (de abajo hacia arriba, como se hace en notación estándar).
+# Las columnas están etiquetadas de 'a' a 'h' (de izquierda a derecha).
+# Un tablero vacío adyacente estará representado por ' ' en cada celda.
 
-        self.tablero2 = [
-            ["Tn", "Cn", "An", "Qn", "Kn", "An", "Cn", "Tn"],
-            ["Pn", "Pn", "Pn", "Pn", "Pn", "Pn", "Pn", "Pn"],
-            ["z", "z", "z", "z", "z", "z", "z", "z"],
-            ["z", "z", "z", "z", "z", "z", "z", "z"],
-            ["z", "z", "z", "z", "z", "z", "z", "z"],
-            ["z", "z", "z", "z", "z", "z", "z", "z"],
-            ["Pb", "Pb", "Pb", "Pb", "Pb", "Pb", "Pb", "Pb"],
-            ["Tb", "Cb", "Ab", "Qb", "Kb", "Ab", "Cb", "Tb"]
-        ]
+Tablero = [
+    ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],  # 8
+    ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],  # 7
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],  # 6
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],  # 5
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],  # 4
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],  # 3
+    ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],  # 2
+    ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']   # 1
+]
 
-        # Lista para fichas tomadas de ambos equipos
-        self.fichas_tomadas = []
+# Leyenda:
+# r, n, b, q, k: piezas negras (rook, knight, bishop, queen, king)
+# R, N, B, Q, K: piezas blancas
+# p: peón negro, P: peón blanco
+# ' ': casilla vacía
 
-    def mostrar_tableros(self):
-        """Muestra ambos tableros en consola."""
-        print("Tablero 1:")
-        for fila in self.tablero1:
-            print(" ".join(fila))
-        print("\nTablero 2:")
-        for fila in self.tablero2:
-            print(" ".join(fila))
-            
+def print_board(board):
+    """Imprime el tablero en una representación visual para facilitar la lectura."""
+    for row in board:
+        print(' '.join(row))
 
-# Ejemplo de uso
-if __name__ == "__main__":
-    tablero = Tablero()
-    tablero.mostrar_tableros()
-    tablero.tomar_ficha("An")  # Simula tomar un alfil negro
-    tablero.mostrar_fichas_tomadas()
+# Imprimir el estado inicial del tablero con el tablero vacío
+print_board(Tablero)
