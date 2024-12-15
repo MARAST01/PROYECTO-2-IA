@@ -55,53 +55,45 @@ class AliceChess:
     def is_within_bounds(x, y):
         return 0 <= x < 8 and 0 <= y < 8
 
-    def move_piece(self, start, end):
-        start_board = "A" if self.current_turn == "white" else "B"
-        end_board = "B" if start_board == "A" else "A"
-
+    def move_piece(self, start, end, start_board, end_board):
         start_x, start_y = start
         end_x, end_y = end
-
+    
         if not (self.is_within_bounds(start_x, start_y) and self.is_within_bounds(end_x, end_y)):
-            print("Invalid move: Out of bounds.")
+            print("Movimiento inválido: Fuera de los límites.")
             return False
-
+    
         piece = self.boards[start_board][start_x][start_y]
-
-        # Check the other board if no piece is found on the current board
-        if not piece:
-            start_board = end_board  # Switch to the other board
-            end_board = "A" if start_board == "B" else "B"
-            piece = self.boards[start_board][start_x][start_y]
-
+    
         if not piece or piece[0] != self.current_turn:
-            print("Invalid move: No piece or wrong turn.")
+            print("Movimiento inválido: No hay pieza o turno incorrecto.")
             return False
-
+    
         if self.boards[end_board][end_x][end_y]:
-            print("Invalid move: Destination on other board is occupied.")
+            print("Movimiento inválido: El destino está ocupado.")
             return False
-
+    
+        # Realizar el movimiento
         self.boards[start_board][start_x][start_y] = None
         self.boards[end_board][end_x][end_y] = piece
         self.current_turn = "black" if self.current_turn == "white" else "white"
-        print(f"Moved {piece[1]} to {end} on board {end_board}.")
+        print(f"Movido {piece[1]} a {end} en el tablero {end_board}.")
         return True
-
-    def get_legal_moves(self, position):
+    
+    def get_legal_moves(self, position, start_board, end_board):
         x, y = position
         moves = []
-        piece = self.boards["A"][x][y] or self.boards["B"][x][y]
+        piece = self.boards[start_board][x][y]
     
         if not piece:
             return moves
     
         color, piece_type = piece
     
-        if piece_type == "P":  # Movimiento de peones
+        if piece_type == "P":  # Peón
             direction = -1 if color == "white" else 1
             new_x = x + direction
-            if self.is_within_bounds(new_x, y) and not self.boards["A"][new_x][y]:
+            if self.is_within_bounds(new_x, y) and not self.boards[end_board][new_x][y]:
                 moves.append((new_x, y))
         # Expandir para otras piezas
         return moves
