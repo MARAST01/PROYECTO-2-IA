@@ -58,43 +58,72 @@ class AliceChess:
     def move_piece(self, start, end, start_board, end_board):
         start_x, start_y = start
         end_x, end_y = end
-    
+
         if not (self.is_within_bounds(start_x, start_y) and self.is_within_bounds(end_x, end_y)):
             print("Movimiento inválido: Fuera de los límites.")
             return False
-    
+
         piece = self.boards[start_board][start_x][start_y]
-    
+
         if not piece or piece[0] != self.current_turn:
             print("Movimiento inválido: No hay pieza o turno incorrecto.")
             return False
-    
-        if self.boards[end_board][end_x][end_y]:
-            print("Movimiento inválido: El destino está ocupado.")
+
+        # Capturar una pieza en el mismo tablero
+        if start_board == end_board and self.boards[end_board][end_x][end_y]:
+            target_piece = self.boards[end_board][end_x][end_y]
+            if target_piece[0] != self.current_turn:
+                print(f"Capturada {target_piece[1]} en {end} del tablero {end_board}.")
+                self.boards[end_board][end_x][end_y] = None
+            else:
+                print("Movimiento inválido: No puedes capturar tus propias piezas.")
+                return False
+
+        # Verificar si el destino está ocupado en el tablero opuesto
+        if start_board != end_board and self.boards[end_board][end_x][end_y]:
+            print("Movimiento inválido: El destino está ocupado en el tablero opuesto.")
             return False
-    
+
         # Realizar el movimiento
         self.boards[start_board][start_x][start_y] = None
         self.boards[end_board][end_x][end_y] = piece
         self.current_turn = "black" if self.current_turn == "white" else "white"
         print(f"Movido {piece[1]} a {end} en el tablero {end_board}.")
         return True
-    
+
     def get_legal_moves(self, position, start_board, end_board):
         x, y = position
         moves = []
         piece = self.boards[start_board][x][y]
-    
+
         if not piece:
             return moves
-    
+
         color, piece_type = piece
-    
+
+        # Generar movimientos según el tipo de pieza
         if piece_type == "P":  # Peón
             direction = -1 if color == "white" else 1
             new_x = x + direction
             if self.is_within_bounds(new_x, y) and not self.boards[end_board][new_x][y]:
                 moves.append((new_x, y))
-        # Expandir para otras piezas
+            # Captura diagonal
+            for dx in [-1, 1]:
+                nx, ny = x + direction, y + dx
+                if self.is_within_bounds(nx, ny):
+                    target_piece = self.boards[start_board][nx][ny]
+                    if target_piece and target_piece[0] != color:
+                        moves.append((nx, ny))
+        elif piece_type == "R":  # Torre
+            for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+                for i in range(1, 8):
+                    nx, ny = x + dx * i, y + dy * i
+                    if not self.is_within_bounds(nx, ny):
+                        break
+                    if self.boards[start_board][nx][ny]:
+                        if self.boards[start_board][nx][ny][0] != color:
+                            moves.append((nx, ny))
+                        break
+                    moves.append((nx, ny))
+        # Agregar lógica para otras piezas
         return moves
-    

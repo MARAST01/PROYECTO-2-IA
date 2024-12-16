@@ -6,19 +6,37 @@ class AliceAI:
         self.depth = depth  # Profundidad del árbol de búsqueda
 
     def evaluate_board(self, game):
-        # Evaluación básica considerando ambos tableros
+        # Valores de las piezas
         piece_values = {"P": 1, "N": 3, "B": 3, "R": 5, "Q": 9, "K": 1000}
-        evaluation = 0
+
+        # Definir las posiciones centrales (peso extra para piezas en estas posiciones)
+        central_positions = {
+            "A": set((x, y) for x in range(3, 5) for y in range(3, 5)),
+            "B": set((x, y) for x in range(3, 5) for y in range(3, 5)),
+        }
+
+        total_mine = 0
+        total_opponent = 0
+        center_mine = 0
+        center_opponent = 0
 
         for board_key in game.boards:
-            for row in game.boards[board_key]:
-                for cell in row:
+            for x, row in enumerate(game.boards[board_key]):
+                for y, cell in enumerate(row):
                     if cell:
                         color, piece = cell
                         value = piece_values.get(piece, 0)
-                        evaluation += value if color == "white" else -value
+                        if color == "white":
+                            total_mine += value
+                            if (x, y) in central_positions[board_key]:
+                                center_mine += value
+                        else:
+                            total_opponent += value
+                            if (x, y) in central_positions[board_key]:
+                                center_opponent += value
 
-        return evaluation
+        # Heurística: total de fichas propias - oponentes + peso de las posiciones centrales
+        return (total_mine - total_opponent) + (center_mine - center_opponent)
 
     def get_all_moves(self, game, color):
         moves = []
@@ -96,12 +114,6 @@ if __name__ == "__main__":
             _, best_move = ai.minimax(game, ai.depth, maximizing_player=False)
             if best_move:
                 start_x, start_y, end, start_board, end_board = best_move
-
-                # Validación para asegurar que la IA siempre pase al otro tablero
-                if start_board == end_board:
-                    print("Movimiento inválido de la IA, ajustando...")
-                    continue
-
                 game.move_piece((start_x, start_y), end, start_board, end_board)
 
         # Condición de finalización
