@@ -69,12 +69,19 @@ class AliceChess:
             print("Movimiento inválido: No hay pieza o turno incorrecto.")
             return False
 
-        # Capturar una pieza en el mismo tablero
-        if start_board == end_board and self.boards[end_board][end_x][end_y]:
-            target_piece = self.boards[end_board][end_x][end_y]
+        # Captura en el mismo tablero
+        if start_board == "B" and self.boards[start_board][end_x][end_y]:
+            target_piece = self.boards[start_board][end_x][end_y]
             if target_piece[0] != self.current_turn:
-                print(f"Capturada {target_piece[1]} en {end} del tablero {end_board}.")
-                self.boards[end_board][end_x][end_y] = None
+                print(f"Capturada {target_piece[1]} en {end} del tablero {start_board}.")
+                self.boards[start_board][end_x][end_y] = None
+
+                # Teletransportar la pieza capturadora al tablero A
+                self.boards[start_board][start_x][start_y] = None
+                self.boards["A"][end_x][end_y] = piece
+                self.current_turn = "black" if self.current_turn == "white" else "white"
+                print(f"Teletransportado {piece[1]} a {end} en el tablero A.")
+                return True
             else:
                 print("Movimiento inválido: No puedes capturar tus propias piezas.")
                 return False
@@ -84,7 +91,7 @@ class AliceChess:
             print("Movimiento inválido: El destino está ocupado en el tablero opuesto.")
             return False
 
-        # Realizar el movimiento
+        # Realizar el movimiento sin captura
         self.boards[start_board][start_x][start_y] = None
         self.boards[end_board][end_x][end_y] = piece
         self.current_turn = "black" if self.current_turn == "white" else "white"
