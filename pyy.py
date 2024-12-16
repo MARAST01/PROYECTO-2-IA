@@ -1,250 +1,402 @@
 import tkinter as tk
 
-# Definición de las piezas
-PIECES = {
-    'T': '♖',  # Torre blanca
-    'C': '♘',  # Caballo blanco
-    'A': '♗',  # Alfil blanco
-    'RE': '♕',  # Reina blanca
-    'R': '♔',  # Rey blanco
-    'P': '♙',  # Peón blanco
-    't': '♜',  # Torre negra
-    'c': '♞',  # Caballo negro
-    'a': '♟',  # Alfil negro
-    're': '♛',  # Reina negra
-    'r': '♚',  # Rey negro
-    'p': '♟',  # Peón negro
-}
+import copy
 
-class ChessGame:
-    def __init__(self, master):
-        self.master = master
-        self.master.title("Ajedrez de Alicia")
-        self.board1 = self.create_board()
-        self.board2 = self.create_board()  # Tablero paralelo vacío
-        self.current_turn = 'white'  # Turno inicial
-        self.selected_piece = None
-        self.selected_position = None
 
-        self.initialize_board()
-        self.create_gui()
+class AliceChess:
+    def __init__(self):
+        self.boards = {
+            "A": self.create_board(),
+            "B": self.create_board(empty=True),
+        }
+        self.current_turn = "white"
 
-    def create_board(self):
-        # Crear un tablero vacío
-        return [['' for _ in range(8)] for _ in range(8)]
+    def create_board(self, empty=False):
+        if empty:
+            return [[None for _ in range(8)] for _ in range(8)]
 
-    def initialize_board(self):
-        # Inicializar las posiciones de las piezas en el tablero
-        self.board1[0] = ['T', 'C', 'A', 'RE', 'R', 'A', 'C', 'T']  # Piezas blancas
-        self.board1[1] = ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P']  # Peones blancos
-        self.board1[6] = ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p']  # Peones negros
-        self.board1[7] = ['t', 'c', 'a', 're', 'r', 'a', 'c', 't']  # Piezas negras
+        # Configuración inicial del ajedrez
+        pieces = ["R", "N", "B", "Q", "K", "B", "N", "R"]
+        board = []
 
-    def create_gui(self):
-        # Crear la interfaz gráfica
-        self.canvas1 = tk.Canvas(self.master, width=400, height=400)
-        self.canvas1.pack(side=tk.LEFT)
-        self.canvas2 = tk.Canvas(self.master, width=400, height=400)
-        self.canvas2.pack(side=tk.RIGHT)
+        # Fila de piezas negras
+        board.append([("black", piece) for piece in pieces])
+        # Peones negros
+        board.append([("black", "P") for _ in range(8)])
+        # Filas vacías
+        for _ in range(4):
+            board.append([None for _ in range(8)])
+        # Peones blancos
+        board.append([("white", "P") for _ in range(8)])
+        # Fila de piezas blancas
+        board.append([("white", piece) for piece in pieces])
 
-        self.turn_label = tk.Label(self.master, text=f"Turno: {self.current_turn.capitalize()}", font=("Arial", 16))
-        self.turn_label.pack()
+        return board
 
-        self.draw_board(self.canvas1, self.board1)
-        self.draw_board(self.canvas2, self.board2)
+    def display_boards(self):
+        print("\nBoard A:")
+        self.display_board(self.boards["A"])
+        print("\nBoard B:")
+        self.display_board(self.boards["B"])
 
-        self.canvas1.bind("<Button-1>", lambda event: self.on_click(event, self.board1, self.canvas1))
-        self.canvas2.bind("<Button-1>", lambda event: self.on_click(event, self.board2, self.canvas2))
+    def display_board(self, board):
+        for row in board:
+            print(" ".join([f"{cell[1][0]}" if cell else "." for cell in row]))
 
-    def draw_board(self, canvas, board):
-        # Dibujar el tablero
-        canvas.delete("all")  # Limpiar el canvas antes de dibujar
-        for row in range(8):
-            for col in range(8):
-                color = 'white' if (row + col) % 2 == 0 else 'gray'
-                canvas.create_rectangle(col * 50, row * 50, (col + 1) * 50, (row + 1) * 50, fill=color)
-                piece = board[row][col]
-                if piece:
-                    canvas.create_text(col * 50 + 25, row * 50 + 25, text=PIECES.get(piece, ''), font=("Arial", 24))
+    def get_legal_moves(self, position, start_board, end_board):
+        x, y = position
+        piece = self.boards[start_board][x][y]
 
-    def on_click(self, event, board, canvas):
-        col = event.x // 50
-        row = event.y // 50
+        if not piece:
+            return []
 
-        if self.selected_piece:
-            # Intentar mover la pieza seleccionada
-            if self.is_valid_move(self.selected_piece, self.selected_position, (row, col), board):
-                self.move_piece(self.selected_position, (row, col), board)
-                self.current_turn = 'black' if self.current_turn == 'white' else 'white'
-                self.turn_label.config(text=f"Turno: {self .current_turn.capitalize()}")
-                if self.current_turn == 'black':
-                    self.ai_move()
-            self.selected_piece = None
-            self.selected_position = None
-        else:
-            # Seleccionar una pieza
-            piece = board[row][col]
-            if (self.current_turn == 'white' and piece.isupper()) or (self.current_turn == 'black' and piece.islower()):
-                self.selected_piece = piece
-                self.selected_position = (row, col)
+        color, piece_type = piece
 
-        self.draw_board(canvas, board)
+        if color != self.current_turn:
+            return []
 
-    def is_valid_move(self, piece, start, end, board):
-        # Implementar la lógica de movimiento de las piezas
-        start_row, start_col = start
-        end_row, end_col = end
+        moves = []
 
-        # Ejemplo de lógica simple para el movimiento de las piezas
-        if piece.upper() == 'P':  # Peón blanco
-            if start_row == 1 and end_row == 3 and start_col == end_col and board[end_row][end_col] == '':
-                return True  # Movimiento de dos espacios
-            if end_row == start_row + 1 and start_col == end_col and board[end_row][end_col] == '':
-                return True  # Movimiento de un espacio
-            if end_row == start_row + 1 and abs(start_col - end_col) == 1 and board[end_row][end_col].islower():
-                return True  # Captura
+        if piece_type == "P":
+            moves = self.get_pawn_moves(x, y, start_board, end_board)
+        elif piece_type == "N":
+            moves = self.get_knight_moves(x, y, start_board, end_board)
+        elif piece_type == "B":
+            moves = self.get_bishop_moves(x, y, start_board, end_board)
+        elif piece_type == "R":
+            moves = self.get_rook_moves(x, y, start_board, end_board)
+        elif piece_type == "Q":
+            moves = self.get_queen_moves(x, y, start_board, end_board)
+        elif piece_type == "K":
+            moves = self.get_king_moves(x, y, start_board, end_board)
 
-        if piece.lower() == 'p':  # Peón negro
-            if start_row == 6 and end_row == 4 and start_col == end_col and board[end_row][end_col] == '':
-                return True  # Movimiento de dos espacios
-            if end_row == start_row - 1 and start_col == end_col and board[end_row][end_col] == '':
-                return True  # Movimiento de un espacio
-            if end_row == start_row - 1 and abs(start_col - end_col) == 1 and board[end_row][end_col].isupper():
-                return True  # Captura
+        return moves
 
-        # Lógica para otras piezas
-        if piece.upper() == 'T':  # Torre
-            if start_row == end_row or start_col == end_col:
-                return self.is_path_clear(start, end, board)
+    def get_pawn_moves(self, x, y, start_board, end_board):
+        moves = []
+        direction = -1 if self.current_turn == "white" else 1
+        target_board = self.boards[end_board]
 
-        if piece.upper() == 'C':  # Caballo
-            if (abs(start_row - end_row) == 2 and abs(start_col - end_col) == 1) or (abs(start_row - end_row) == 1 and abs(start_col - end_col) == 2):
-                return True
+        # Movimiento simple hacia adelante
+        if 0 <= x + direction < 8 and not target_board[x + direction][y]:
+            moves.append((x + direction, y))
 
-        if piece.upper() == 'A':  # Alfil
-            if abs(start_row - end_row) == abs(start_col - end_col):
-                return self.is_path_clear(start, end, board)
+        # Captura diagonal
+        for dy in [-1, 1]:
+            if 0 <= y + dy < 8 and 0 <= x + direction < 8:
+                target_piece = target_board[x + direction][y + dy]
+                if target_piece and target_piece[0] != self.current_turn:
+                    moves.append((x + direction, y + dy))
 
-        if piece.upper() == 'RE':  # Reina
-            if (start_row == end_row or start_col == end_col) or (abs(start_row - end_row) == abs(start_col - end_col)):
-                return self.is_path_clear(start, end, board)
+        return moves
 
-        if piece.upper() == 'R':  # Rey
-            if max(abs(start_row - end_row), abs(start_col - end_col)) == 1:
-                return True
+    def get_knight_moves(self, x, y, start_board, end_board):
+        moves = []
+        target_board = self.boards[end_board]
+        knight_jumps = [
+            (2, 1), (2, -1), (-2, 1), (-2, -1),
+            (1, 2), (1, -2), (-1, 2), (-1, -2)
+        ]
+
+        for dx, dy in knight_jumps:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < 8 and 0 <= ny < 8:
+                target_piece = target_board[nx][ny]
+                if not target_piece or target_piece[0] != self.current_turn:
+                    moves.append((nx, ny))
+
+        return moves
+
+    def get_bishop_moves(self, x, y, start_board, end_board):
+        return self.get_sliding_moves(x, y, start_board, end_board, directions=[(1, 1), (1, -1), (-1, 1), (-1, -1)])
+
+    def get_rook_moves(self, x, y, start_board, end_board):
+        return self.get_sliding_moves(x, y, start_board, end_board, directions=[(1, 0), (0, 1), (-1, 0), (0, -1)])
+
+    def get_queen_moves(self, x, y, start_board, end_board):
+        return self.get_sliding_moves(x, y, start_board, end_board, directions=[
+            (1, 1), (1, -1), (-1, 1), (-1, -1), (1, 0), (0, 1), (-1, 0), (0, -1)
+        ])
+
+    def get_king_moves(self, x, y, start_board, end_board):
+        moves = []
+        target_board = self.boards[end_board]
+        king_moves = [
+            (1, 0), (0, 1), (-1, 0), (0, -1),
+            (1, 1), (1, -1), (-1, 1), (-1, -1)
+        ]
+
+        for dx, dy in king_moves:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < 8 and 0 <= ny < 8:
+                target_piece = target_board[nx][ny]
+                if not target_piece or target_piece[0] != self.current_turn:
+                    moves.append((nx, ny))
+
+        return moves
+
+    def get_sliding_moves(self, x, y, start_board, end_board, directions):
+        moves = []
+        target_board = self.boards[end_board]
+
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            while 0 <= nx < 8 and 0 <= ny < 8:
+                target_piece = target_board[nx][ny]
+                if target_piece:
+                    if target_piece[0] != self.current_turn:
+                        moves.append((nx, ny))
+                    break
+                moves.append((nx, ny))
+                nx += dx
+                ny += dy
+
+        return moves
+
+    def move_piece(self, start, end, start_board, end_board):
+        sx, sy = start
+        ex, ey = end
+
+        piece = self.boards[start_board][sx][sy]
+
+        if not piece:
+            return False
+
+        if end not in self.get_legal_moves(start, start_board, end_board):
+            return False
+
+        # Realizar movimiento
+        self.boards[start_board][sx][sy] = None
+        self.boards[end_board][ex][ey] = piece
+
+        # Cambiar turno
+        self.current_turn = "black" if self.current_turn == "white" else "white"
+        return True
+
+    def is_king_in_check(self, color):
+        king_position = None
+        king_board = None
+
+        for board_key in ["A", "B"]:
+            for x, row in enumerate(self.boards[board_key]):
+                for y, cell in enumerate(row):
+                    if cell == (color, "K"):
+                        king_position = (x, y)
+                        king_board = board_key
+                        break
+
+        if not king_position:
+            return False
+
+        opponent_color = "black" if color == "white" else "white"
+        for board_key in ["A", "B"]:
+            for x, row in enumerate(self.boards[board_key]):
+                for y, cell in enumerate(row):
+                    if cell and cell[0] == opponent_color:
+                        moves = self.get_legal_moves((x, y), board_key, king_board)
+                        if king_position in moves:
+                            return True
 
         return False
 
-    def is_path_clear(self, start, end, board):
-        start_row, start_col = start
-        end_row, end_col = end
-        row_step = (end_row - start_row) // max(1, abs(end_row - start_row)) if start_row != end_row else 0
-        col_step = (end_col - start_col) // max(1, abs(end_col - start_col)) if start_col != end_col else 0
+    def is_checkmate(self, color):
+        for board_key in ["A", "B"]:
+            for x in range(8):
+                for y in range(8):
+                    piece = self.boards[board_key][x][y]
+                    if piece and piece[0] == color:
+                        for end_board in ["A", "B"]:
+                            moves = self.get_legal_moves((x, y), board_key, end_board)
+                            for move in moves:
+                                cloned_game = self.clone_game()
+                                cloned_game.move_piece((x, y), move, board_key, end_board)
+                                if not cloned_game.is_king_in_check(color):
+                                    return False
 
-        current_row, current_col = start_row + row_step, start_col + col_step
-        while (current_row, current_col) != (end_row, end_col):
-            if board[current_row][current_col] != '':
-                return False
-            current_row += row_step
-            current_col += col_step
         return True
 
-    def move_piece(self, start, end, board):
-        start_row, start_col = start
-        end_row, end_col = end
-        piece = board[start_row][start_col]
-        board[end_row][end_col] = piece
-        board[start_row][start_col] = ''
-        # Actualizar el tablero paralelo solo si es un movimiento de la IA
-        if self.current_turn == 'black':
-            self.update_parallel_board(piece, end_row, end_col)  # Solo mover la pieza en el tablero paralelo
-        self.draw_board(self.canvas1, self.board1)
+    def clone_game(self):
+        import copy
+        return copy.deepcopy(self)
 
-    def update_parallel_board(self, piece, row, col):
-        self.board2[row][col] = piece  # Mover la pieza en el tablero paralelo
-        self.draw_board(self.canvas2, self.board2)
+    def is_game_over(self):
+        if self.is_checkmate("white"):
+            print("Black wins by checkmate!")
+            return True
+        if self.is_checkmate("black"):
+            print("White wins by checkmate!")
+            return True
+        return False
+
+
+
+class AliceAI:
+    def __init__(self, depth=2):
+        self.depth = depth
+
+    def evaluate_board(self, game):
+        piece_values = {"P": 1, "N": 3, "B": 3, "R": 5, "Q": 9, "K": 1000}
+        central_positions = {
+            "A": set((x, y) for x in range(3, 5) for y in range(3, 5)),
+            "B": set((x, y) for x in range(3, 5) for y in range(3, 5)),
+        }
+
+        total_mine = 0
+        total_opponent = 0
+        center_mine = 0
+        center_opponent = 0
+
+        for board_key in game.boards:
+            for x, row in enumerate(game.boards[board_key]):
+                for y, cell in enumerate(row):
+                    if cell:
+                        color, piece = cell
+                        value = piece_values.get(piece, 0)
+                        if color == "white":
+                            total_mine += value
+                            if (x, y) in central_positions[board_key]:
+                                center_mine += value
+                        else:
+                            total_opponent += value
+                            if (x, y) in central_positions[board_key]:
+                                center_opponent += value
+
+        return (total_mine - total_opponent) + (center_mine - center_opponent)
+
+    def get_all_moves(self, game, color):
+        moves = []
+        for board_key in ["A", "B"]:
+            for x in range(8):
+                for y in range(8):
+                    piece = game.boards[board_key][x][y]
+                    if piece and piece[0] == color:
+                        target_board = "A" if board_key == "B" else "B"
+                        legal_moves = game.get_legal_moves((x, y), board_key, target_board)
+                        moves.extend([(x, y, move, board_key, target_board) for move in legal_moves])
+        return moves
+
+    def minimax(self, game, depth, maximizing_player):
+        if depth == 0:
+            return self.evaluate_board(game), None
+
+        best_move = None
+        if maximizing_player:
+            max_eval = float('-inf')
+            for move in self.get_all_moves(game, "white"):
+                start_x, start_y, end, start_board, end_board = move
+                cloned_game = copy.deepcopy(game)
+                cloned_game.move_piece((start_x, start_y), end, start_board, end_board)
+                eval, _ = self.minimax(cloned_game, depth - 1, False)
+                if eval > max_eval:
+                    max_eval = eval
+                    best_move = move
+            return max_eval, best_move
+        else:
+            min_eval = float('inf')
+            for move in self.get_all_moves(game, "black"):
+                start_x, start_y, end, start_board, end_board = move
+                cloned_game = copy.deepcopy(game)
+                cloned_game.move_piece((start_x, start_y), end, start_board, end_board)
+                eval, _ = self.minimax(cloned_game, depth - 1, True)
+                if eval < min_eval:
+                    min_eval = eval
+                    best_move = move
+            return min_eval, best_move
+
+class AliceChessGUI:
+    def __init__(self, root):
+        self.root = root
+        self.game = AliceChess()
+        self.ai = AliceAI(depth=2)
+        self.selected_piece = None
+        self.selected_board = None
+
+        self.board_frames = {
+            "A": tk.Frame(root),
+            "B": tk.Frame(root)
+        }
+
+        # Configurar tableros
+        for board_key in self.board_frames:
+            self.board_frames[board_key].grid(row=0, column=0 if board_key == "A" else 1, padx=10, pady=10)
+
+        self.cells = {
+            "A": {},
+            "B": {}
+        }
+
+        for board_key in self.board_frames:
+            for x in range(8):
+                for y in range(8):
+                    cell = tk.Label(self.board_frames[board_key], width=4, height=2, bg=self.get_cell_color(x, y), relief="raised")
+                    cell.grid(row=x, column=y)
+                    cell.bind("<Button-1>", lambda e, bx=x, by=y, board=board_key: self.cell_clicked(bx, by, board))
+                    self.cells[board_key][(x, y)] = cell
+
+        self.update_board()
+
+    def get_cell_color(self, x, y):
+        return "#F0D9B5" if (x + y) % 2 == 0 else "#B58863"
+
+    def update_board(self):
+        piece_symbols = {
+            "P": "♙", "N": "♘", "B": "♗", "R": "♖", "Q": "♕", "K": "♔"
+        }
+
+        for board_key, board in self.game.boards.items():
+            for x, row in enumerate(board):
+                for y, cell in enumerate(row):
+                    if cell:
+                        color, piece = cell
+                        symbol = piece_symbols[piece]
+                        self.cells[board_key][(x, y)].config(text=symbol, fg="white" if color == "white" else "black")
+                    else:
+                        self.cells[board_key][(x, y)].config(text="")
+
+    def show_valid_moves(self, valid_moves, board):
+        for x, y in valid_moves:
+            self.cells[board][(x, y)].config(bg="#90EE90")  # Verde claro
+
+    def reset_highlights(self):
+        for board_key in self.cells:
+            for x, y in self.cells[board_key]:
+                self.cells[board_key][(x, y)].config(bg=self.get_cell_color(x, y))
+
+    def cell_clicked(self, x, y, board):
+        self.reset_highlights()
+        cell = self.game.boards[board][x][y]
+
+        if self.selected_piece and (self.selected_board == board):
+            # Intenta mover la pieza seleccionada
+            target_board = "A" if board == "B" else "B"
+            if (x, y) in self.game.get_legal_moves(self.selected_piece, board, target_board):
+                self.game.move_piece(self.selected_piece, (x, y), self.selected_board, target_board)
+                self.selected_piece = None
+                self.selected_board = None
+                self.update_board()
+                self.check_ai_turn()
+                return
+
+        # Si selecciona una pieza
+        if cell and cell[0] == self.game.current_turn:
+            self.selected_piece = (x, y)
+            self.selected_board = board
+            valid_moves = self.game.get_legal_moves((x, y), board, "A" if board == "B" else "B")
+            self.show_valid_moves(valid_moves, "A" if board == "B" else "B")
+
+    def check_ai_turn(self):
+        if self.game.current_turn == "black":
+            self.root.after(500, self.ai_move)
 
     def ai_move(self):
-        best_move = self.minimax(self.board1, 3, True)
+        _, best_move = self.ai.minimax(self.game, self.ai.depth, maximizing_player=False)
         if best_move:
-            start, end = best_move
-            self.move_piece(start, end, self.board1)  # Mover en el tablero principal
-            self.current_turn = 'white'
-            self.turn_label.config(text=f"Turno: {self.current_turn.capitalize()}")
-
-    def minimax(self, board, depth, is_maximizing):
-        if depth == 0 or self.is_game_over(board):
-            return self.evaluate_board(board)
-
-        if is_maximizing:
-            best_value = float('-inf')
-            best_move = None
-            for row in range(8):
-                for col in range(8):
-                    piece = board[row][col]
-                    if piece.islower():  # Solo considerar piezas negras
-                        for r in range(8):
-                            for c in range(8):
-                                if self.is_valid_move(piece, (row, col), (r, c), board):
-                                    # Realizar el movimiento
-                                    original_piece = board[r][c]
-                                    board[r][c] = piece
-                                    board[row][col] = ''
-                                    move_value = self.minimax(board, depth - 1, False)
-                                    board[row][col] = piece
-                                    board[r][c] = original_piece
-                                    if move_value > best_value:
-                                        best_value = move_value
-                                        best_move = ((row, col), (r, c))
-            return best_move if depth == 3 else best_value
-        else:
-            best_value = float('inf')
-            for row in range(8):
-                for col in range(8):
-                    piece = board[row][col]
-                    if piece.isupper():  # Solo considerar piezas blancas
-                        for r in range(8):
-                            for c in range(8):
-                                if self.is_valid_move(piece, (row, col), (r, c), board):
-                                    # Realizar el movimiento
-                                    original_piece = board[r][c]
-                                    board[r][c] = piece
-                                    board[row][col] = ''
-                                    move_value = self.minimax(board, depth - 1, True)
-                                    board[row][col] = piece
-                                    board[r][c] = original_piece
-                                    best_value = min(best_value, move_value)
-            return best_value
-
-    def evaluate_board(self, board):
-        # Implementar una heurística simple para evaluar el tablero
-        value = 0
-        for row in range(8):
-            for col in range(8):
-                piece = board[row][col]
-                if piece.isupper():  # Piezas blancas
-                    value += self.get_piece_value(piece)
-                elif piece.islower():  # Piezas negras
-                    value -= self.get_piece_value(piece.lower())
-        return value
-
-    def get_piece_value(self, piece):
-        # Asignar valores a las piezas
-        values = {
-            'p': 1,  # Peón
-            'c': 3,  # Caballo
-            'a': 3,  # Alfil
-            't': 5,  # Torre
-            're': 9,  # Reina
-            'r': 1000,  # Rey (valor alto para protegerlo)
-        }
-        return values.get(piece, 0)
-
-    def is_game_over(self, board):
-        # Implementar lógica para determinar si el juego ha terminado
-        return False  # Placeholder, implementar lógica real
+            start_x, start_y, end, start_board, end_board = best_move
+            self.game.move_piece((start_x, start_y), end, start_board, end_board)
+            self.update_board()
 
 if __name__ == "__main__":
     root = tk.Tk()
-    game = ChessGame(root)
+    root.title("Alice Chess GUI")
+    gui = AliceChessGUI(root)
     root.mainloop()
