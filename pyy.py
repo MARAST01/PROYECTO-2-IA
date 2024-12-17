@@ -334,6 +334,7 @@ class AliceChessGUI:
                     self.cells[board_key][(x, y)] = cell
 
         self.update_board()
+        self.create_reset_button()
 
     def get_cell_color(self, x, y):
         return "#F0D9B5" if (x + y) % 2 == 0 else "#B58863"
@@ -383,6 +384,16 @@ class AliceChessGUI:
             self.selected_board = board
             valid_moves = self.game.get_legal_moves((x, y), board, "A" if board == "B" else "B")
             self.show_valid_moves(valid_moves, "A" if board == "B" else "B")
+            
+    def reset_game(self):
+            self.game = AliceChess()
+            self.selected_piece = None
+            self.selected_board = None
+            self.update_board()
+
+    def create_reset_button(self):
+            reset_button = tk.Button(self.root, text="Reiniciar", command=self.reset_game)
+            reset_button.grid(row=3, column=0, columnspan=2, pady=10)
 
     def check_ai_turn(self):
         if self.game.current_turn == "black":
